@@ -5,6 +5,9 @@ class ModelExtensionModuleImport1C extends Model {
     public function importPrices() {
         $updated = 0;
         $errors = 0;
+        $batch_size = 1000;
+        $price_updates = [];
+        $special_updates = [];
         
         $price_file = $this->config->get('module_import_1c_price_file');
         if (!$price_file) {
@@ -20,33 +23,60 @@ class ModelExtensionModuleImport1C extends Model {
             $feed = simplexml_load_string(file_get_contents($price_file));
             $products = $feed->DECLARHEAD->products->product;
             
+            // Get all product codes at once
+            $product_codes = [];
             foreach ($products as $product) {
-                // Використовуємо upc замість id_1c
-                $ex_products = $this->db->query("SELECT product_id, stock_status_id FROM " . DB_PREFIX . "product WHERE upc = '" . strval($product['code']) . "'");
-                $ex_products = $ex_products->rows;
-                
-                if (!empty($ex_products)) {
-                    foreach ($ex_products as $ex_product) {
-                        $product_ex_id = $ex_product['product_id'];
-                        $pricevalue = floatval(str_replace([' ', ' ', ','], ['', '', '.'], strval($product->pricevalue)));
-                        
-                        if (strval($product->pricetype) == '000000001') {
-                            $this->db->query("UPDATE " . DB_PREFIX . "product SET price = " . floatval($pricevalue) . " WHERE product_id = " . $product_ex_id);
-                            $updated++;
-                        }
-                        
-                        if (strval($product->pricetype) == '000000005') {
-                            $this->db->query("DELETE FROM " . DB_PREFIX . "product_special WHERE product_id = " . intval($product_ex_id));
-                            $this->db->query("INSERT INTO " . DB_PREFIX . "product_special SET 
-                                product_id = " . intval($product_ex_id) . ", 
-                                customer_group_id = 2, 
-                                price = " . floatval($pricevalue) . ",
-                                priority = 1,
-                                date_start = '0000-00-00',
-                                date_end = '0000-00-00'");
-                            $updated++;
-                        }
+                $product_codes[] = strval($product['code']);
+            }
+            
+            // Get all existing products in one query
+            $existing_products = [];
+            $codes_string = "'" . implode("','", array_map([$this->db, 'escape'], $product_codes)) . "'";
+            $query = $this->db->query("SELECT product_id, upc FROM " . DB_PREFIX . "product WHERE upc IN (" . $codes_string . ")");
+            foreach ($query->rows as $row) {
+                $existing_products[$row['upc']] = $row['product_id'];
+            }
+            
+            foreach ($products as $product) {
+                $code = strval($product['code']);
+                if (isset($existing_products[$code])) {
+                    $product_ex_id = $existing_products[$code];
+                    $pricevalue = floatval(str_replace([' ', ' ', ','], ['', '', '.'], strval($product->pricevalue)));
+                    
+                    if (strval($product->pricetype) == '000000001') {
+                        $price_updates[] = "(" . $product_ex_id . ", " . floatval($pricevalue) . ")";
+                        $updated++;
                     }
+                    
+                    if (strval($product->pricetype) == '000000005') {
+                        $special_updates[] = "(" . $product_ex_id . ", 2, " . floatval($pricevalue) . ", 1, '0000-00-00', '0000-00-00')";
+                        $updated++;
+                    }
+                }
+            }
+            
+            // Batch update prices
+            if (!empty($price_updates)) {
+                $chunks = array_chunk($price_updates, $batch_size);
+                foreach ($chunks as $chunk) {
+                    $this->db->query("INSERT INTO " . DB_PREFIX . "product (product_id, price) VALUES " . implode(',', $chunk) . 
+                                    " ON DUPLICATE KEY UPDATE price = VALUES(price)");
+                }
+            }
+            
+            // Batch update special prices
+            if (!empty($special_updates)) {
+                // First delete all special prices for these products
+                $product_ids = array_unique(array_map(function($item) {
+                    return explode(',', trim($item, '()'))[0];
+                }, $special_updates));
+                
+                $this->db->query("DELETE FROM " . DB_PREFIX . "product_special WHERE product_id IN (" . implode(',', $product_ids) . ")");
+                
+                // Then insert new special prices in batches
+                $chunks = array_chunk($special_updates, $batch_size);
+                foreach ($chunks as $chunk) {
+                    $this->db->query("INSERT INTO " . DB_PREFIX . "product_special (product_id, customer_group_id, price, priority, date_start, date_end) VALUES " . implode(',', $chunk));
                 }
             }
             
@@ -61,6 +91,8 @@ class ModelExtensionModuleImport1C extends Model {
     public function importQuantities() {
         $updated = 0;
         $errors = 0;
+        $batch_size = 1000;
+        $quantity_updates = [];
         $ids_exists = [];
         
         $quantity_file = $this->config->get('module_import_1c_quantity_file');
@@ -77,25 +109,45 @@ class ModelExtensionModuleImport1C extends Model {
             $feed = simplexml_load_string(file_get_contents($quantity_file));
             $products = $feed->DECLARHEAD->products->product;
             
+            // Get all product codes at once
+            $product_codes = [];
             foreach ($products as $product) {
-                // Використовуємо upc замість id_1c
-                $ex_products = $this->db->query("SELECT product_id FROM " . DB_PREFIX . "product WHERE upc = '" . strval($product['code']) . "'");
-                $ex_products = $ex_products->rows;
-                $quantity = intval(str_replace([' ', ' ', ','], ['', '', '.'], strval($product->quantity)));
-                
-                if (!empty($ex_products)) {
-                    foreach ($ex_products as $ex_product) {
-                        $product_ex_id = $ex_product['product_id'];
-                        if (!in_array($product_ex_id, $ids_exists)) {
-                            $ids_exists[] = $product_ex_id;
-                        }
-                        $this->db->query("UPDATE " . DB_PREFIX . "product SET quantity = " . intval($quantity) . " WHERE product_id = " . intval($product_ex_id));
-                        $updated++;
+                $product_codes[] = strval($product['code']);
+            }
+            
+            // Get all existing products in one query
+            $existing_products = [];
+            $codes_string = "'" . implode("','", array_map([$this->db, 'escape'], $product_codes)) . "'";
+            $query = $this->db->query("SELECT product_id, upc FROM " . DB_PREFIX . "product WHERE upc IN (" . $codes_string . ")");
+            foreach ($query->rows as $row) {
+                $existing_products[$row['upc']] = $row['product_id'];
+            }
+            
+            foreach ($products as $product) {
+                $code = strval($product['code']);
+                if (isset($existing_products[$code])) {
+                    $product_ex_id = $existing_products[$code];
+                    $quantity = intval(str_replace([' ', ' ', ','], ['', '', '.'], strval($product->quantity)));
+                    
+                    if (!in_array($product_ex_id, $ids_exists)) {
+                        $ids_exists[] = $product_ex_id;
                     }
+                    
+                    $quantity_updates[] = "(" . $product_ex_id . ", " . intval($quantity) . ")";
+                    $updated++;
                 }
             }
             
-            // Встановлення кількості 0 для товарів, яких немає в файлі
+            // Batch update quantities
+            if (!empty($quantity_updates)) {
+                $chunks = array_chunk($quantity_updates, $batch_size);
+                foreach ($chunks as $chunk) {
+                    $this->db->query("INSERT INTO " . DB_PREFIX . "product (product_id, quantity) VALUES " . implode(',', $chunk) . 
+                                    " ON DUPLICATE KEY UPDATE quantity = VALUES(quantity)");
+                }
+            }
+            
+            // Set quantity to 0 for products not in the file
             if (!empty($ids_exists)) {
                 $this->db->query("UPDATE " . DB_PREFIX . "product SET quantity = 0 WHERE product_id NOT IN (" . implode(',', $ids_exists) . ")");
             }
@@ -111,6 +163,14 @@ class ModelExtensionModuleImport1C extends Model {
     public function importNewProducts() {
         $created = 0;
         $errors = 0;
+        $batch_size = 1000;
+        $product_inserts = [];
+        $store_inserts = [];
+        $layout_inserts = [];
+        $category_inserts = [];
+        $description_inserts = [];
+        $seo_inserts = [];
+        $attribute_inserts = [];
         
         $quantity_file = $this->config->get('module_import_1c_quantity_file');
         if (!$quantity_file) {
@@ -126,43 +186,106 @@ class ModelExtensionModuleImport1C extends Model {
             $feed = simplexml_load_string(file_get_contents($quantity_file));
             $products = $feed->DECLARHEAD->products->product;
             
+            // Get all product codes at once
+            $product_codes = [];
             foreach ($products as $product) {
-                // Використовуємо upc замість id_1c
-                $ex_products = $this->db->query("SELECT product_id FROM " . DB_PREFIX . "product WHERE upc = '" . strval($product['code']) . "'");
-                $ex_products = $ex_products->rows;
-                $quantity = intval(str_replace([' ', ' ', ','], ['', '', '.'], strval($product->quantity)));
-                $article = explode(' ', strval($product['article']));
-                $productname = $article[0] . ' ' . strval($product['productname']);
-                
-                if (empty($ex_products)) {
-                    // Створення нового товару
-                    $this->db->query("INSERT INTO " . DB_PREFIX . "product SET 
-                        model = '" . $this->db->escape($article[0]) . "', 
-                        sku = '" . $this->db->escape($article[0]) . "', 
-                        upc = '" . $this->db->escape(strval($product['code'])) . "', 
-                        quantity = " . intval($quantity) . ", 
-                        stock_status_id = 7, 
-                        price = 0, 
-                        status = 0, 
-                        date_added = '" . date('Y-m-d H:i:s') . "', 
-                        date_modified = '" . date('Y-m-d H:i:s') . "'");
+                $product_codes[] = strval($product['code']);
+            }
+            
+            // Get all existing products in one query
+            $existing_products = [];
+            $codes_string = "'" . implode("','", array_map([$this->db, 'escape'], $product_codes)) . "'";
+            $query = $this->db->query("SELECT upc FROM " . DB_PREFIX . "product WHERE upc IN (" . $codes_string . ")");
+            foreach ($query->rows as $row) {
+                $existing_products[$row['upc']] = true;
+            }
+            
+            foreach ($products as $product) {
+                $code = strval($product['code']);
+                if (!isset($existing_products[$code])) {
+                    $quantity = intval(str_replace([' ', ' ', ','], ['', '', '.'], strval($product->quantity)));
+                    $article = explode(' ', strval($product['article']));
+                    $productname = $article[0] . ' ' . strval($product['productname']);
+                    $current_time = date('Y-m-d H:i:s');
                     
-                    $product_ex_id = $this->db->getLastId();
-                    
-                    // Додаткові записи
-                    $this->db->query("INSERT INTO " . DB_PREFIX . "product_to_store SET product_id = " . intval($product_ex_id) . ", store_id = 0");
-                    $this->db->query("INSERT INTO " . DB_PREFIX . "product_to_layout SET product_id = " . intval($product_ex_id) . ", store_id = 0, layout_id = 0");
-                    $this->db->query("INSERT INTO " . DB_PREFIX . "product_to_category SET product_id = " . intval($product_ex_id) . ", category_id = 455");
-                    $this->db->query("INSERT INTO " . DB_PREFIX . "product_description SET product_id = " . intval($product_ex_id) . ", language_id = 3, `name` = '" . $this->db->escape($productname) . "'");
-                    
-                    // SEO URL використовуючи покращену транслітерацію
-                    $slug = $this->generateSeoUrl($productname);
-                    $this->db->query("INSERT INTO " . DB_PREFIX . "seo_url SET store_id = 0, language_id = 3, `query` = 'product_id=" . $product_ex_id . "', `keyword` = '" . $this->db->escape($slug) . "'");
-                    
-                    // Додавання артикулу як атрибуту
-                    $this->db->query("INSERT INTO " . DB_PREFIX . "product_attribute SET product_id = " . intval($product_ex_id) . ", attribute_id = 1958, language_id = 3, `text` = '" . $this->db->escape($article[0]) . "'");
+                    // Prepare product insert
+                    $product_inserts[] = "('" . $this->db->escape($article[0]) . "', '" . 
+                                        $this->db->escape($article[0]) . "', '" . 
+                                        $this->db->escape($code) . "', " . 
+                                        intval($quantity) . ", 7, 0, 0, '" . 
+                                        $current_time . "', '" . $current_time . "')";
                     
                     $created++;
+                }
+            }
+            
+            // Batch insert products
+            if (!empty($product_inserts)) {
+                $chunks = array_chunk($product_inserts, $batch_size);
+                foreach ($chunks as $chunk) {
+                    $this->db->query("INSERT INTO " . DB_PREFIX . "product (model, sku, upc, quantity, stock_status_id, price, status, date_added, date_modified) VALUES " . implode(',', $chunk));
+                    
+                    // Get the inserted product IDs
+                    $last_id = $this->db->getLastId();
+                    $product_ids = range($last_id - count($chunk) + 1, $last_id);
+                    
+                    // Prepare related inserts
+                    foreach ($product_ids as $product_id) {
+                        $store_inserts[] = "(" . $product_id . ", 0)";
+                        $layout_inserts[] = "(" . $product_id . ", 0, 0)";
+                        $category_inserts[] = "(" . $product_id . ", 455)";
+                        $description_inserts[] = "(" . $product_id . ", 3, '" . $this->db->escape($productname) . "')";
+                        
+                        // Generate SEO URL
+                        $slug = $this->generateSeoUrl($productname);
+                        $seo_inserts[] = "(0, 3, 'product_id=" . $product_id . "', '" . $this->db->escape($slug) . "')";
+                        
+                        // Add article as attribute
+                        $attribute_inserts[] = "(" . $product_id . ", 1958, 3, '" . $this->db->escape($article[0]) . "')";
+                    }
+                }
+                
+                // Batch insert related data
+                if (!empty($store_inserts)) {
+                    $chunks = array_chunk($store_inserts, $batch_size);
+                    foreach ($chunks as $chunk) {
+                        $this->db->query("INSERT INTO " . DB_PREFIX . "product_to_store (product_id, store_id) VALUES " . implode(',', $chunk));
+                    }
+                }
+                
+                if (!empty($layout_inserts)) {
+                    $chunks = array_chunk($layout_inserts, $batch_size);
+                    foreach ($chunks as $chunk) {
+                        $this->db->query("INSERT INTO " . DB_PREFIX . "product_to_layout (product_id, store_id, layout_id) VALUES " . implode(',', $chunk));
+                    }
+                }
+                
+                if (!empty($category_inserts)) {
+                    $chunks = array_chunk($category_inserts, $batch_size);
+                    foreach ($chunks as $chunk) {
+                        $this->db->query("INSERT INTO " . DB_PREFIX . "product_to_category (product_id, category_id) VALUES " . implode(',', $chunk));
+                    }
+                }
+                
+                if (!empty($description_inserts)) {
+                    $chunks = array_chunk($description_inserts, $batch_size);
+                    foreach ($chunks as $chunk) {
+                        $this->db->query("INSERT INTO " . DB_PREFIX . "product_description (product_id, language_id, name) VALUES " . implode(',', $chunk));
+                    }
+                }
+                
+                if (!empty($seo_inserts)) {
+                    $chunks = array_chunk($seo_inserts, $batch_size);
+                    foreach ($chunks as $chunk) {
+                        $this->db->query("INSERT INTO " . DB_PREFIX . "seo_url (store_id, language_id, query, keyword) VALUES " . implode(',', $chunk));
+                    }
+                }
+                
+                if (!empty($attribute_inserts)) {
+                    $chunks = array_chunk($attribute_inserts, $batch_size);
+                    foreach ($chunks as $chunk) {
+                        $this->db->query("INSERT INTO " . DB_PREFIX . "product_attribute (product_id, attribute_id, language_id, text) VALUES " . implode(',', $chunk));
+                    }
                 }
             }
             
