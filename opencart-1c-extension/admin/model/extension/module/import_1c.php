@@ -254,11 +254,13 @@ class ModelExtensionModuleImport1C extends Model {
             
             // Перевірка наявності продуктів у базі
             $existing_products = [];
-            $codes_string = "'" . implode("','", array_map([$this->db, 'escape'], $product_codes)) . "'";
-            $query = $this->db->query("SELECT upc FROM " . DB_PREFIX . "product WHERE upc IN (" . $codes_string . ")");
-            
-            foreach ($query->rows as $row) {
-                $existing_products[$row['upc']] = true;
+            if (!empty($product_codes)) {
+                $codes_string = "'" . implode("','", array_map([$this->db, 'escape'], $product_codes)) . "'";
+                $query = $this->db->query("SELECT upc FROM " . DB_PREFIX . "product WHERE upc IN (" . $codes_string . ")");
+                
+                foreach ($query->rows as $row) {
+                    $existing_products[$row['upc']] = true;
+                }
             }
             
             // Підготовка даних для вставки нових продуктів
@@ -311,75 +313,93 @@ class ModelExtensionModuleImport1C extends Model {
                 $article_attribute_id = $this->getConfig('article_attribute_id');
                 
                 foreach ($chunks as $i => $chunk) {
+                    // Отримуємо поточний AUTO_INCREMENT перед вставкою
+                    $query = $this->db->query("SELECT AUTO_INCREMENT FROM information_schema.TABLES WHERE TABLE_SCHEMA = '" . DB_DATABASE . "' AND TABLE_NAME = '" . DB_PREFIX . "product'");
+                    $start_id = (int)$query->row['AUTO_INCREMENT'];
+                    
+                    // Виконуємо вставку товарів
                     $this->db->query("INSERT INTO " . DB_PREFIX . "product 
                         (model, sku, upc, quantity, stock_status_id, price, status, date_added, date_modified) 
                         VALUES " . implode(',', $chunk));
                     
-                    // Отримуємо ID вставлених продуктів
-                    $last_id = $this->db->getLastId();
+                    // Розраховуємо правильний діапазон вставлених ID
                     $chunk_size = $chunk_sizes[$i];
-                    $product_ids = range($last_id - $chunk_size + 1, $last_id);
+                    $product_ids = range($start_id, $start_id + $chunk_size - 1);
                     
                     // Підготовляємо пов'язані дані для вставки
                     foreach ($product_ids as $product_id) {
-                        $product_info = $product_data[$data_index];
-                        
-                        // Підготовка даних магазину
-                        $store_inserts[] = "(" . $product_id . ", " . $default_store_id . ")";
-                        
-                        // Підготовка даних макету
-                        $layout_inserts[] = "(" . $product_id . ", " . $default_store_id . ", " . $default_layout_id . ")";
-                        
-                        // Підготовка даних категорії
-                        $category_inserts[] = "(" . $product_id . ", " . $default_category_id . ")";
-                        
-                        // Підготовка даних опису
-                        $description_inserts[] = "(" . $product_id . ", " . $default_language_id . ", '" . 
+                        if (isset($product_data[$data_index])) {
+                            $product_info = $product_data[$data_index];
+                            
+                            // Підготовка даних магазину
+                            $store_inserts[] = "(" . $product_id . ", " . $default_store_id . ")";
+                            
+                            // Підготовка даних макету
+                            $layout_inserts[] = "(" . $product_id . ", " . $default_store_id . ", " . $default_layout_id . ")";
+                            
+                            // Підготовка даних категорії
+                            $category_inserts[] = "(" . $product_id . ", " . $default_category_id . ")";
+                            
+                            // Підготовка даних опису
+                            $description_inserts[] = "(" . $product_id . ", " . $default_language_id . ", '" . 
                                                 $this->db->escape($product_info['name']) . "')";
-                        
-                        // Генерація SEO URL
-                        $slug = $this->generateSeoUrl($product_info['name']);
-                        $seo_inserts[] = "(" . $default_store_id . ", " . $default_language_id . ", 'product_id=" . 
-                                        $product_id . "', '" . $this->db->escape($slug) . "')";
-                        
-                        // Додавання артикула як атрибуту
-                        $attribute_inserts[] = "(" . $product_id . ", " . $article_attribute_id . ", " . 
-                                             $default_language_id . ", '" . $this->db->escape($product_info['article']) . "')";
-                        
-                        $data_index++;
+                            
+                            // Генерація SEO URL
+                            $slug = $this->generateSeoUrl($product_info['name']);
+                            $seo_inserts[] = "(" . $default_store_id . ", " . $default_language_id . ", 'product_id=" . 
+                                            $product_id . "', '" . $this->db->escape($slug) . "')";
+                            
+                            // Додавання артикула як атрибуту
+                            $attribute_inserts[] = "(" . $product_id . ", " . $article_attribute_id . ", " . 
+                                                 $default_language_id . ", '" . $this->db->escape($product_info['article']) . "')";
+                            
+                            $data_index++;
+                        }
                     }
                 }
                 
                 // Вставка пов'язаних даних
-                $this->executeBatchQuery(
-                    "INSERT INTO " . DB_PREFIX . "product_to_store (product_id, store_id) VALUES ", 
-                    $store_inserts
-                );
+                if (!empty($store_inserts)) {
+                    $this->executeBatchQuery(
+                        "INSERT INTO " . DB_PREFIX . "product_to_store (product_id, store_id) VALUES ", 
+                        $store_inserts
+                    );
+                }
                 
-                $this->executeBatchQuery(
-                    "INSERT INTO " . DB_PREFIX . "product_to_layout (product_id, store_id, layout_id) VALUES ", 
-                    $layout_inserts
-                );
+                if (!empty($layout_inserts)) {
+                    $this->executeBatchQuery(
+                        "INSERT INTO " . DB_PREFIX . "product_to_layout (product_id, store_id, layout_id) VALUES ", 
+                        $layout_inserts
+                    );
+                }
                 
-                $this->executeBatchQuery(
-                    "INSERT INTO " . DB_PREFIX . "product_to_category (product_id, category_id) VALUES ", 
-                    $category_inserts
-                );
+                if (!empty($category_inserts)) {
+                    $this->executeBatchQuery(
+                        "INSERT INTO " . DB_PREFIX . "product_to_category (product_id, category_id) VALUES ", 
+                        $category_inserts
+                    );
+                }
                 
-                $this->executeBatchQuery(
-                    "INSERT INTO " . DB_PREFIX . "product_description (product_id, language_id, name) VALUES ", 
-                    $description_inserts
-                );
+                if (!empty($description_inserts)) {
+                    $this->executeBatchQuery(
+                        "INSERT INTO " . DB_PREFIX . "product_description (product_id, language_id, name) VALUES ", 
+                        $description_inserts
+                    );
+                }
                 
-                $this->executeBatchQuery(
-                    "INSERT INTO " . DB_PREFIX . "seo_url (store_id, language_id, query, keyword) VALUES ", 
-                    $seo_inserts
-                );
+                if (!empty($seo_inserts)) {
+                    $this->executeBatchQuery(
+                        "INSERT INTO " . DB_PREFIX . "seo_url (store_id, language_id, query, keyword) VALUES ", 
+                        $seo_inserts
+                    );
+                }
                 
-                $this->executeBatchQuery(
-                    "INSERT INTO " . DB_PREFIX . "product_attribute (product_id, attribute_id, language_id, text) VALUES ", 
-                    $attribute_inserts
-                );
+                if (!empty($attribute_inserts)) {
+                    $this->executeBatchQuery(
+                        "INSERT INTO " . DB_PREFIX . "product_attribute (product_id, attribute_id, language_id, text) VALUES ", 
+                        $attribute_inserts
+                    );
+                }
             }
             
             return ['created' => $created, 'errors' => $errors];
