@@ -11,11 +11,6 @@ class ModelExtensionModuleImport1C extends Model {
             $price_file = '/home/ilweb/nawiteh.ua/prices/Prices.xml';
         }
         
-        $per_page = (int)$this->config->get('module_import_1c_per_page');
-        if ($per_page <= 0) {
-            $per_page = 10000;
-        }
-        
         try {
             // Перевірка наявності файлу
             if (!file_exists($price_file)) {
@@ -23,14 +18,9 @@ class ModelExtensionModuleImport1C extends Model {
             }
 
             $feed = simplexml_load_string(file_get_contents($price_file));
-            $total = count($feed->DECLARHEAD->products->product);
-
-            $page = 1;
-            $start = ($page - 1) * $per_page;
-            $end = min($start + $per_page, $total);
+            $products = $feed->DECLARHEAD->products->product;
             
-            for ($i = $start; $i < $end; $i++) {
-                $product = $feed->DECLARHEAD->products->product[$i];
+            foreach ($products as $product) {
                 // Використовуємо upc замість id_1c
                 $ex_products = $this->db->query("SELECT product_id, stock_status_id FROM " . DB_PREFIX . "product WHERE upc = '" . strval($product['code']) . "'");
                 $ex_products = $ex_products->rows;
@@ -78,11 +68,6 @@ class ModelExtensionModuleImport1C extends Model {
             $quantity_file = '/home/ilweb/nawiteh.ua/quantities/ZalyshokXML.xml';
         }
         
-        $per_page = (int)$this->config->get('module_import_1c_per_page');
-        if ($per_page <= 0) {
-            $per_page = 10000;
-        }
-        
         try {
             // Перевірка наявності файлу
             if (!file_exists($quantity_file)) {
@@ -90,14 +75,9 @@ class ModelExtensionModuleImport1C extends Model {
             }
 
             $feed = simplexml_load_string(file_get_contents($quantity_file));
-            $total = count($feed->DECLARHEAD->products->product);
-
-            $page = 1;
-            $start = ($page - 1) * $per_page;
-            $end = min($start + $per_page, $total);
+            $products = $feed->DECLARHEAD->products->product;
             
-            for ($i = $start; $i < $end; $i++) {
-                $product = $feed->DECLARHEAD->products->product[$i];
+            foreach ($products as $product) {
                 // Використовуємо upc замість id_1c
                 $ex_products = $this->db->query("SELECT product_id FROM " . DB_PREFIX . "product WHERE upc = '" . strval($product['code']) . "'");
                 $ex_products = $ex_products->rows;
@@ -137,11 +117,6 @@ class ModelExtensionModuleImport1C extends Model {
             $quantity_file = '/home/ilweb/nawiteh.ua/quantities/ZalyshokXML.xml';
         }
         
-        $per_page = (int)$this->config->get('module_import_1c_per_page');
-        if ($per_page <= 0) {
-            $per_page = 10000;
-        }
-        
         try {
             // Перевірка наявності файлу
             if (!file_exists($quantity_file)) {
@@ -149,14 +124,9 @@ class ModelExtensionModuleImport1C extends Model {
             }
 
             $feed = simplexml_load_string(file_get_contents($quantity_file));
-            $total = count($feed->DECLARHEAD->products->product);
-
-            $page = 1;
-            $start = ($page - 1) * $per_page;
-            $end = min($start + $per_page, $total);
+            $products = $feed->DECLARHEAD->products->product;
             
-            for ($i = $start; $i < $end; $i++) {
-                $product = $feed->DECLARHEAD->products->product[$i];
+            foreach ($products as $product) {
                 // Використовуємо upc замість id_1c
                 $ex_products = $this->db->query("SELECT product_id FROM " . DB_PREFIX . "product WHERE upc = '" . strval($product['code']) . "'");
                 $ex_products = $ex_products->rows;
@@ -186,7 +156,7 @@ class ModelExtensionModuleImport1C extends Model {
                     $this->db->query("INSERT INTO " . DB_PREFIX . "product_description SET product_id = " . intval($product_ex_id) . ", language_id = 3, `name` = '" . $this->db->escape($productname) . "'");
                     
                     // SEO URL використовуючи покращену транслітерацію
-                    $slug = $this->generateSeoUrl(strval($product['code']) . '-' . $productname);
+                    $slug = $this->generateSeoUrl($productname);
                     $this->db->query("INSERT INTO " . DB_PREFIX . "seo_url SET store_id = 0, language_id = 3, `query` = 'product_id=" . $product_ex_id . "', `keyword` = '" . $this->db->escape($slug) . "'");
                     
                     // Додавання артикулу як атрибуту
@@ -234,6 +204,21 @@ class ModelExtensionModuleImport1C extends Model {
         
         // Видаляємо дефіс в кінці, якщо він залишився після обрізання
         $text = rtrim($text, '-');
+        
+        // Перевірка на дублікати
+        $base_slug = $text;
+        $counter = 1;
+        
+        while (true) {
+            $query = $this->db->query("SELECT COUNT(*) AS total FROM " . DB_PREFIX . "seo_url WHERE `keyword` = '" . $this->db->escape($text) . "'");
+            
+            if ($query->row['total'] == 0) {
+                break;
+            }
+            
+            $text = $base_slug . '-' . $counter;
+            $counter++;
+        }
         
         return $text;
     }

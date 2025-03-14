@@ -26,10 +26,10 @@
           <div class="row mb-3">
             <label class="col-sm-2 col-form-label" for="input-status">{{ entry_status }}</label>
             <div class="col-sm-10">
-              <div class="form-check form-switch form-switch-lg">
-                <input type="hidden" name="module_import_1c_status" value="0"/>
-                <input type="checkbox" name="module_import_1c_status" value="1" id="input-status" class="form-check-input" {% if module_import_1c_status %} checked{% endif %}/>
-              </div>
+              <select name="module_import_1c_status" id="input-status" class="form-select">
+                <option value="1"{% if module_import_1c_status %} selected="selected"{% endif %}>{{ text_enabled }}</option>
+                <option value="0"{% if not module_import_1c_status %} selected="selected"{% endif %}>{{ text_disabled }}</option>
+              </select>
             </div>
           </div>
           <div class="row mb-3">
@@ -42,12 +42,6 @@
             <label class="col-sm-2 col-form-label" for="input-quantity-file">{{ entry_quantity_file }}</label>
             <div class="col-sm-10">
               <input type="text" name="module_import_1c_quantity_file" value="{{ module_import_1c_quantity_file }}" placeholder="{{ entry_quantity_file }}" id="input-quantity-file" class="form-control"/>
-            </div>
-          </div>
-          <div class="row mb-3">
-            <label class="col-sm-2 col-form-label" for="input-per-page">{{ entry_per_page }}</label>
-            <div class="col-sm-10">
-              <input type="text" name="module_import_1c_per_page" value="{{ module_import_1c_per_page }}" placeholder="{{ entry_per_page }}" id="input-per-page" class="form-control"/>
             </div>
           </div>
         </form>

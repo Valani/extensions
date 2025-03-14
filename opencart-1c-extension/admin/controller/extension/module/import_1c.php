@@ -21,7 +21,6 @@ class ControllerExtensionModuleImport1C extends Controller {
         $data['entry_status'] = $this->language->get('entry_status');
         $data['entry_price_file'] = $this->language->get('entry_price_file');
         $data['entry_quantity_file'] = $this->language->get('entry_quantity_file');
-        $data['entry_per_page'] = $this->language->get('entry_per_page');
         $data['button_save'] = $this->language->get('button_save');
         $data['button_cancel'] = $this->language->get('button_cancel');
         $data['button_update_prices'] = $this->language->get('button_update_prices');
@@ -75,12 +74,6 @@ class ControllerExtensionModuleImport1C extends Controller {
             $data['module_import_1c_quantity_file'] = $this->config->get('module_import_1c_quantity_file');
         }
 
-        if (isset($this->request->post['module_import_1c_per_page'])) {
-            $data['module_import_1c_per_page'] = $this->request->post['module_import_1c_per_page'];
-        } else {
-            $data['module_import_1c_per_page'] = $this->config->get('module_import_1c_per_page') ? $this->config->get('module_import_1c_per_page') : 10000;
-        }
-
         $data['header'] = $this->load->controller('common/header');
         $data['column_left'] = $this->load->controller('common/column_left');
         $data['footer'] = $this->load->controller('common/footer');
@@ -109,7 +102,7 @@ class ControllerExtensionModuleImport1C extends Controller {
         $this->load->model('extension/module/import_1c');
         $result = $this->model_extension_module_import_1c->importPrices();
         
-        $this->session->data['success'] = $this->language->get('text_prices_updated') . ': ' . $result['updated'];
+        $this->session->data['success'] = sprintf($this->language->get('text_prices_updated'), $result['updated'], $result['errors']);
         $this->response->redirect($this->url->link('extension/module/import_1c', 'user_token=' . $this->session->data['user_token'], true));
     }
 
@@ -118,7 +111,7 @@ class ControllerExtensionModuleImport1C extends Controller {
         $this->load->model('extension/module/import_1c');
         $result = $this->model_extension_module_import_1c->importQuantities();
         
-        $this->session->data['success'] = $this->language->get('text_quantities_updated') . ': ' . $result['updated'];
+        $this->session->data['success'] = sprintf($this->language->get('text_quantities_updated'), $result['updated'], $result['errors']);
         $this->response->redirect($this->url->link('extension/module/import_1c', 'user_token=' . $this->session->data['user_token'], true));
     }
 
@@ -127,7 +120,7 @@ class ControllerExtensionModuleImport1C extends Controller {
         $this->load->model('extension/module/import_1c');
         $result = $this->model_extension_module_import_1c->importNewProducts();
         
-        $this->session->data['success'] = $this->language->get('text_products_updated') . ': ' . $result['created'];
+        $this->session->data['success'] = sprintf($this->language->get('text_products_updated'), $result['created'], $result['errors']);
         $this->response->redirect($this->url->link('extension/module/import_1c', 'user_token=' . $this->session->data['user_token'], true));
     }
 }
