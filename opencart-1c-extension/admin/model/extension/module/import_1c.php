@@ -171,6 +171,7 @@ class ModelExtensionModuleImport1C extends Model {
         $description_inserts = [];
         $seo_inserts = [];
         $attribute_inserts = [];
+        $product_data = []; // Store product data for later use
         
         $quantity_file = $this->config->get('module_import_1c_quantity_file');
         if (!$quantity_file) {
@@ -178,7 +179,6 @@ class ModelExtensionModuleImport1C extends Model {
         }
         
         try {
-            // Перевірка наявності файлу
             if (!file_exists($quantity_file)) {
                 throw new Exception('Файл не знайдено: ' . $quantity_file);
             }
@@ -208,6 +208,13 @@ class ModelExtensionModuleImport1C extends Model {
                     $productname = $article[0] . ' ' . strval($product['productname']);
                     $current_time = date('Y-m-d H:i:s');
                     
+                    // Store product data for later use
+                    $product_data[] = [
+                        'name' => $productname,
+                        'article' => $article[0],
+                        'code' => $code
+                    ];
+                    
                     // Prepare product insert
                     $product_inserts[] = "('" . $this->db->escape($article[0]) . "', '" . 
                                         $this->db->escape($article[0]) . "', '" . 
@@ -222,6 +229,8 @@ class ModelExtensionModuleImport1C extends Model {
             // Batch insert products
             if (!empty($product_inserts)) {
                 $chunks = array_chunk($product_inserts, $batch_size);
+                $data_index = 0;
+                
                 foreach ($chunks as $chunk) {
                     $this->db->query("INSERT INTO " . DB_PREFIX . "product (model, sku, upc, quantity, stock_status_id, price, status, date_added, date_modified) VALUES " . implode(',', $chunk));
                     
@@ -229,19 +238,23 @@ class ModelExtensionModuleImport1C extends Model {
                     $last_id = $this->db->getLastId();
                     $product_ids = range($last_id - count($chunk) + 1, $last_id);
                     
-                    // Prepare related inserts
+                    // Prepare related inserts using stored product data
                     foreach ($product_ids as $product_id) {
+                        $product_info = $product_data[$data_index];
+                        
                         $store_inserts[] = "(" . $product_id . ", 0)";
                         $layout_inserts[] = "(" . $product_id . ", 0, 0)";
                         $category_inserts[] = "(" . $product_id . ", 455)";
-                        $description_inserts[] = "(" . $product_id . ", 3, '" . $this->db->escape($productname) . "')";
+                        $description_inserts[] = "(" . $product_id . ", 3, '" . $this->db->escape($product_info['name']) . "')";
                         
                         // Generate SEO URL
-                        $slug = $this->generateSeoUrl($productname);
+                        $slug = $this->generateSeoUrl($product_info['name']);
                         $seo_inserts[] = "(0, 3, 'product_id=" . $product_id . "', '" . $this->db->escape($slug) . "')";
                         
                         // Add article as attribute
-                        $attribute_inserts[] = "(" . $product_id . ", 1958, 3, '" . $this->db->escape($article[0]) . "')";
+                        $attribute_inserts[] = "(" . $product_id . ", 1958, 3, '" . $this->db->escape($product_info['article']) . "')";
+                        
+                        $data_index++;
                     }
                 }
                 
