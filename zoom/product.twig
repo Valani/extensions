@@ -40,9 +40,16 @@
     {% if oct_popup_purchase_status is defined and can_buy %}
         <div class="sc-product-fixed-btns position-fixed d-md-none py-2 px-3">
             <div class="d-flex align-items-center justify-content-between">
-                <button type="button" name="button" class="sc-btn sc-btn-outline sc-btn-outline-primary br-4 small fsz-12 sc-product-one-click-btn" onclick="octPopPurchase('{{ product_id }}')">
-                    {{ oct_product_quickbuy }}
-                </button>
+                {% if (is_rent == 1 or is_remont == 1) %}
+                    <div class="service-cust">
+                        <span>Послуга</span><br>
+                        <span>Замовлення тільки за номером телефону <a href="tel:+380937000090">+38 (093) 700 00 90</a></span>
+                    </div>
+                {% else %}
+                    <button type="button" name="button" class="sc-btn sc-btn-outline sc-btn-outline-primary br-4 small fsz-12 sc-product-one-click-btn" onclick="octPopPurchase('{{ product_id }}')">
+                        {{ oct_product_quickbuy }}
+                    </button>
+                {% endif %}
                 <div class="sc-module-quantity" hidden>
                     <input type="hidden" class="form-control" name="quantity" value="{{ minimum }}" id="fixed-input-quantity"/>
                     <input type="hidden" name="product_id" value="{{ product_id }}"/>
@@ -73,10 +80,26 @@
                         <img src="catalog/view/theme/oct_showcase/img/sprite.svg#include--product-tab-info-icon" alt="" width="24" height="24">
                         <span class="sc-product-tab-title ps-2 fsz-14">{{ oct_product_maintab }}</span>
                     </div>
+                    {% if oct_product_extra_tabs %}
+                        {% set key = 0 %}
+                        {% for extra_tab in oct_product_extra_tabs %}
+                            {% set key = key + 1 %}
+                            <div data-tab-target="#product_extra_tab-{{ key }}" class="sc-product-tab d-flex align-items-center justify-content-center">
+                                <img src="https://nawiteh.ua/image/catalog/menu/models.svg" alt="" width="24" height="24">
+                                <span class="sc-product-tab-title ps-2 fsz-14">{{ extra_tab.title }}</span>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
                     {% if attribute_groups %}
                     <div data-tab-target=".sc-product-content-attributes" class="sc-product-tab sc-product-tab-attributes d-flex align-items-center justify-content-center">
                         <img src="catalog/view/theme/oct_showcase/img/sprite.svg#include--product-tab-attr-icon" alt="" width="24" height="24">
                         <span class="sc-product-tab-title ps-2 fsz-14">{{ tab_attribute }}</span>
+                    </div>
+                    {% endif %}
+                    {% if equipment_groups %}
+                    <div data-tab-target=".sc-product-content-equipment" class="sc-product-tab sc-product-tab-equipment d-flex align-items-center justify-content-center">
+                        <img src="https://nawiteh.ua/image/catalog/menu/models.svg" alt="" width="24" height="24">
+                        <span class="sc-product-tab-title ps-2 fsz-14">Сумісні моделі</span>
                     </div>
                     {% endif %}
                     {% if review_status %}
@@ -96,16 +119,6 @@
                         <img src="catalog/view/theme/oct_showcase/img/sprite.svg#include--product-tab-extra-icon" alt="" width="24" height="24">
                         <span class="sc-product-tab-title ps-2 fsz-14">{{ dop_tab.title }}</span>
                     </div>
-                    {% endif %}
-                    {% if oct_product_extra_tabs %}
-                        {% set key = 0 %}
-                        {% for extra_tab in oct_product_extra_tabs %}
-                            {% set key = key + 1 %}
-                            <div data-tab-target="#product_extra_tab-{{ key }}" class="sc-product-tab d-flex align-items-center justify-content-center">
-                                <img src="catalog/view/theme/oct_showcase/img/sprite.svg#include--product-tab-extra-icon" alt="" width="24" height="24">
-                                <span class="sc-product-tab-title ps-2 fsz-14">{{ extra_tab.title }}</span>
-                            </div>
-                        {% endfor %}
                     {% endif %}
                     {% if products %}
                     <div data-tab-target="#sc-related-products_0" class="sc-product-tab d-flex align-items-center justify-content-center">
@@ -149,18 +162,28 @@
                     {% if thumb or images %}
                         {% if thumb %}
                             <div class="sc-product-images-main px-3">
-                                <div class="sc-product-images-slide pb-3 pb-md-4">
+                                <div class="sc-product-images-slide easyzoom easyzoom--overlay pb-3 pb-md-4">
                                     <a href="{{ popup }}" class="oct-gallery d-block" onclick="return false;">
                                         <img src="{{ thumb }}" class="d-block mx-auto" alt="{{ heading_title }}" title="{{ heading_title }}" width="{{ thumb_width }}" height="{{ thumb_height }}" />
                                     </a>
+                                    <div class="hidden-slider easyzoom2 easyzoom--overlay2">
+                                        <a href="{{ popup }}" class="" onclick="return false;">
+                                            <img src="{{ popup }}" class="" alt="{{ heading_title }}" title="{{ heading_title }}" width="2400" width="2400"/>
+                                        </a>
+                                    </div>
                                 </div>
                                 {% for key, image in images %}
                                     {% set i = key + 1 %}
                                     {% if loop.index0 > 0 %}
-                                        <div class="sc-product-images-slide pb-3 pb-md-4">
-                                            <a href="{{ image.popup_fancy }}" class="oct-gallery d-block" onclick="return false;">
+                                        <div class="sc-product-images-slide easyzoom easyzoom--overlay pb-3 pb-md-4">
+                                            <a href="{{ image.popup }}" class="oct-gallery d-block" onclick="return false;">
                                                 <img src="{{ image.popup }}" class="d-block mx-auto" alt="{{ heading_title }}" title="{{ heading_title }}" width="{{ thumb_width }}" height="{{ thumb_height }}" />
                                             </a>
+                                            <div class="hidden-slider easyzoom2 easyzoom--overlay2">
+                                                <a href="{{ image.popup }}" class="" onclick="return false;">
+                                                    <img src="{{ image.popup }}" class="" alt="{{ heading_title }}" title="{{ heading_title }}" width="2400" width="2400"/>
+                                                </a>
+                                            </div>
                                         </div>
                                     {% endif %}
                                 {% endfor %}
@@ -183,7 +206,7 @@
                                     $('.image-additional-box').addClass('overflow-visible');
                                 }, 500);
 
-                                var sliderProducts = $('.sc-product-images-main a');
+                                var sliderProducts = $('.sc-product-images-main a.oct-gallery');
 
                                 sliderProducts.on('click', function(e) {
                                     e.preventDefault();
@@ -205,7 +228,7 @@
                                             trueIndex = dataIndex;
                                     }
 
-                                    $.fancybox.open(sliderProducts, {backFocus: false, hideScrollbar: false, loop : true}, trueIndex);
+                                    $.fancybox.open($(sliderProducts.next()), {backFocus: false, hideScrollbar: false, loop : true}, trueIndex);
 
                                     return false;
                                 });
@@ -276,48 +299,52 @@
             </div>
             <div id="product" class="col-lg-6 mt-3">
                 <div class="sc-product-info d-flex flex-column flex-md-row flex-lg-column flex-xl-row align-items-start align-items-md-center align-items-lg-start align-items-xl-center justify-content-between fsz-12 light-text">
-                    <div class="sc-product-info-left d-flex align-items-center w-100 w-md-auto justify-content-between justify-content-md-start">
-                        {% if oct_showcase_data.product_model is defined and oct_showcase_data.product_model == 'on' %}
-                            <div class="sc-product-info-item p-1 br-4">
-                                <span class="dark-text">{{ text_model }}</span> {{ model }}
-                            </div>
-                        {% endif %}
-                        {% if manufacturer %}
-                            <div class="sc-product-info-item p-1 br-4{% if oct_showcase_data.product_model is defined and oct_showcase_data.product_model == 'on' %} ms-3{% endif %}">
-                                <span class="dark-text">{{ text_manufacturer }}</span> <a href="{{ manufacturers }}" class="blue-link">{{ manufacturer }}</a>
-                            </div>
-                        {% endif %}
-                    </div>
-                    {% if review_status %}
-                    <div class="sc-product-info-right mt-3 mt-md-0 mt-lg-3 mt-xl-0">
-                        <div class="sc-product-info-item p-1 br-4 d-flex align-items-center">
-                            <span class="blue-link" id="reviewTabTrigger">{{ oct_product_reviews }}</span>
-                            <script>
-                                window.addEventListener('DOMContentLoaded', () => {
-                                    let screenWidth = window.innerWidth;
-
-                                    document.getElementById('reviewTabTrigger').addEventListener('click', () => {
-                                        if (screenWidth < 768) {
-                                            scrollToElement('.sc-product-content-reviews', '.sc-product-tab-reviews', -80);
-                                        } else {
-                                            scrollToElement('.sc-product-content-reviews', '.sc-product-tab-reviews', -140);
-                                        }
-                                    });
-                                });
-                            </script>
-                            <span class="sc-product-info-item-badge br-4 mx-2 dark-text">{{ total_reviews }}</span>
-                            <div class="sc-module-rating-stars d-flex align-items-center">
-                                {% for i in 1..5 %}
-                                    {% if rating < i %}
-                                        <span class="sc-module-rating-star"></span>
-                                    {% else %}
-                                        <span class="sc-module-rating-star sc-module-rating-star-is"></span>
-                                    {% endif %}
-                                {% endfor %}
-                            </div>
+                    <div class="d-flex align-items-center justify-content-between w-100 gap-4">
+                        <div class="sc-product-info-left d-flex flex-column align-items-start">
+                            {% if sku %}
+                                <div class="sc-product-info-item p-1 br-4">
+                                    <span class="fw-medium dark-text">{{ text_model }}:</span>
+                                    <span class="ms-2" style="color: #666;">{{ sku }}</span>
+                                </div>
+                            {% endif %}
+                            
+                            {% if manufacturer %}
+                                <div class="sc-product-info-item p-1 br-4 mt-2">
+                                    <span class="fw-medium dark-text">{{ text_manufacturer }}:</span>
+                                    <span class="ms-2">
+                                        <a href="{{ manufacturers }}" class="blue-link">{{ manufacturer }}</a>
+                                    </span>
+                                </div>
+                            {% endif %}
                         </div>
+                        
+                        {% if manufacturer_image %}
+                            <style>
+                                .manufacturer-logo {
+                                    height: 6rem;
+                                }
+                                .manufacturer-logo img {
+                                    max-height: 100%;
+                                    width: auto;
+                                    max-width: 200px;
+                                    object-fit: contain;
+                                }
+                                @media (max-width: 768px) {
+                                    .manufacturer-logo {
+                                        height: 4rem;
+                                    }
+                                    .manufacturer-logo img {
+                                        max-width: 140px;
+                                    }
+                                }
+                            </style>
+
+                            <a href="{{ manufacturers }}" class="manufacturer-logo d-flex align-items-center">
+                                <img src="{{ manufacturer_image }}" 
+                                    alt="{{ manufacturer }}" />
+                            </a>
+                            {% endif %}
                     </div>
-                    {% endif %}
                 </div>
                 <div class="content-block sc-product-actions mt-3 p-0 mobile-no-radius no-hover-shadow">
                     <div class="sc-product-actions-top d-flex justify-content-between p-3 pb-4{% if can_buy %} with-border{% endif %}">
@@ -400,8 +427,15 @@
                                     {% endif %}
                                 </div>
                             {% endif %}
-                            {% if oct_popup_purchase_status is defined and can_buy %}
-                                <button type="button" class="sc-btn sc-btn-secondary d-none d-md-flex br-4 fsz-12 fw-400 mt-3 sc-product-one-click-btn" onclick="octPopPurchase('{{ product_id }}')"><span class="sc-btn-text">{{ oct_product_quickbuy }}</span></button>
+                            {% if (is_rent == 1 or is_remont == 1) %}
+                                <div class="service-cust">
+                                    <span>Послуга</span><br>
+                                    <span>Замовлення тільки за номером телефону <a href="tel:+380937000090">+38 (093) 700 00 90</a></span>
+                                </div>
+                            {% else %}
+                                {% if oct_popup_purchase_status is defined and can_buy %}
+                                    <button type="button" class="sc-btn sc-btn-secondary d-none d-md-flex br-4 fsz-12 fw-400 mt-3 sc-product-one-click-btn" onclick="octPopPurchase('{{ product_id }}')"><span class="sc-btn-text">{{ oct_product_quickbuy }}</span></button>
+                                {% endif %}
                             {% endif %}
                             {% if product_js_button is defined and product_js_button %}
                                 <div class="sc-product-social-buttons mt-3">{{ product_js_button }}</div>
@@ -563,27 +597,38 @@
                                     {% endfor %}
                                 </div>
                             {% endif %}
-                            <div class="sc-product-buttons d-flex align-items-center">
-                                <div class="sc-module-quantity d-flex align-items-center justify-content-center py-1 br-12">
-                                    <button type="button" aria-label="Minus" class="sc-module-quantity-btn d-flex align-items-center justify-content-center" onclick="updateValueProduct(true, false, false);">
-                                        <span class="minus"></span>
-                                    </button>
-                                    <input type="text" class="form-control" name="quantity" value="{{ minimum }}" id="input-quantity" aria-label="Quantity" inputmode="numeric">
-                                    <button type="button" aria-label="Plus" class="sc-module-quantity-btn d-flex align-items-center justify-content-center" onclick="updateValueProduct(false, true, false);">
-                                        <span class="plus"></span>
-                                    </button>
-                                    <input type="hidden" name="product_id" value="{{ product_id }}"/>
-                                    <input type="hidden" id="min-product-quantity" value="{{ minimum }}" name="min_quantity">
-                                    <input type="hidden" id="max-product-quantity" value="{{ max_quantity }}" name="max_quantity">
+                            <div class="sc-product-buttons d-flex align-items-start">
+                                {% if is_rent == 0 %}
+                                <div class="wrapper-m0quantity">
+                                    <div class="sc-module-quantity d-flex align-items-center justify-content-center py-1 br-12 {% if (is_rent == 1 or is_remont == 1) %}hidden{% endif %}">
+                                        <button type="button" aria-label="Minus" class="sc-module-quantity-btn d-flex align-items-center justify-content-center" onclick="updateValueProduct(true, false, false);">
+                                            <span class="minus"></span>
+                                        </button>
+                                        <input type="text" class="form-control" name="quantity" value="{{ minimum }}" id="input-quantity" aria-label="Quantity" inputmode="numeric">
+                                        <button type="button" aria-label="Plus" class="sc-module-quantity-btn d-flex align-items-center justify-content-center" onclick="updateValueProduct(false, true, false);">
+                                            <span class="plus"></span>
+                                        </button>
+                                        <input type="hidden" name="product_id" value="{{ product_id }}"/>
+                                        <input type="hidden" id="min-product-quantity" value="{{ minimum }}" name="min_quantity">
+                                        <input type="hidden" id="max-product-quantity" value="{{ max_quantity }}" name="max_quantity">
+                                    </div>
+                                    <div id="spec-out-new1" class="sc-module-sticker br-4 fsz-10 fw-500 spec-out-new fblack">{% if oct_stock_display and not out_of_stock %} {{ oct_product_config_stock_display }} {% endif %}{{ stock }}</div>
                                 </div>
-                                <button type="button" id="button-cart" data-loading-text="{{ text_loading }}" class="sc-btn sc-btn-primary br-4 ">
+                                {% endif %}
+                                <button type="button" id="button-cart" data-loading-text="{{ text_loading }}" class="sc-btn sc-btn-primary br-4 {% if (is_rent == 1 or is_remont == 1) %}hidden{% endif %} ">
                                     <img src="catalog/view/theme/oct_showcase/img/sprite.svg#include--btn-cart-icon" alt="" width="20" height="20" class="sc-btn-icon sc-btn-icon-cart-img">
-                                    <span class="sc-btn-text">{{ button_cart }}</span>
+                                    <span class="sc-btn-text">Купити</span>
                                 </button>
+                                {% if (is_rent == 1 or is_remont == 1) %}
+                                    <button type="button" id="button-cart-book" data-loading-text="{{ text_loading }}" class="sc-btn sc-btn-primary br-4" onclick="octPopupCallPhone();">
+                                        <img src="catalog/view/theme/oct_showcase/img/sprite.svg#include--btn-cart-icon" alt="" width="20" height="20" class="sc-btn-icon sc-btn-icon-cart-img">
+                                        <span class="sc-btn-text">Замовити</span>
+                                    </button>
+                                {% endif %}
                             </div>
                         </div>
                         {{ oct_byoneclick }}
-                    {% else %}   
+                    {% else %}
                         {% if oct_stock_notifier_status is defined and oct_stock_notifier_status is not empty %}
                             <div class="px-3 pb-3">
                                 <button onclick="octStockNotifier('{{ product_id }}');" type="button" class="sc-btn sc-btn-primary br-4 sc-stock-notifier-btn">
@@ -654,6 +699,21 @@
                                 </div>
                             </div>
                         {% endif %}
+                        {% if oct_product_extra_tabs %}
+                            {% set key = 0 %}
+                            {% for extra_tab in oct_product_extra_tabs %}
+                                {% set key = key + 1 %}
+                                    <div id="product_extra_tab-{{ key }}" class="sc-product-content-info pt-4 pt-md-0 px-3 px-lg-4">
+                                        <div class="sc-product-content-title d-flex align-items-center">
+                                            <div class="sc-product-content-title-icon d-flex align-items-center justify-content-center br-4">
+                                                <img src="https://nawiteh.ua/image/catalog/menu/models.svg" alt="" width="16" height="16">
+                                            </div>
+                                            <span class="fsz-24 fw-600 dark-text">{{ extra_tab.title }}</span>
+                                        </div>
+                                        <div class="sc-product-content-text dark-text fsz-14 mt-3">{{ extra_tab.text }}</div>
+                                    </div>
+                            {% endfor %}
+                        {% endif %}
                         {% if attribute_groups %}
                             <div class="sc-product-content-attributes pb-4 mb-md-4 pt-4 pt-md-0 px-3 px-lg-4">
                                 <div class="sc-product-content-title d-flex align-items-center">
@@ -665,7 +725,6 @@
                                 <div class="dark-text fsz-14 mt-3">
                                     {% for attribute_group in attribute_groups %}
                                         <div class="sc-product-content-attributes-list">
-                                            <div class="sc-product-content-attributes-list-title">{{ attribute_group.name }}</div>
                                             {% for attribute in attribute_group.attribute %}
                                                 <div class="sc-product-content-attributes-list-item d-flex justify-content-between">
                                                     <div>{{ attribute.name }}</div>
@@ -676,6 +735,383 @@
                                     {% endfor %}
                                 </div>
                             </div>
+                        {% endif %}
+                        {% if equipment_groups %}
+                            <div class="sc-product-content-equipment pb-4 mb-4 pt-4 pt-md-0 px-3 px-lg-4">
+                                <div class="sc-product-content-title d-flex align-items-center">
+                                    <div class="sc-product-content-title-icon d-flex align-items-center justify-content-center br-4">
+                                        <img src="https://nawiteh.ua/image/catalog/menu/models.svg" alt="" width="16" height="16">
+                                    </div>
+                                    <span class="fsz-24 fw-600 dark-text">Сумісні моделі:</span>
+                                </div>
+                                
+                                {# Desktop version #}
+                                <div class="dark-text fsz-14 mt-3 d-none d-md-block">
+                                    <div class="equipment-table-wrapper">
+                                        <table class="w-100" style="border-collapse: collapse; margin-bottom: 1rem;">
+                                            <thead>
+                                                <tr>
+                                                    <th style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left; background-color: #F1BC0F; color: #212121; font-weight: 600;">Тип</th>
+                                                    <th style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left; background-color: #F1BC0F; color: #212121; font-weight: 600;">Серія</th>
+                                                    <th style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left; background-color: #F1BC0F; color: #212121; font-weight: 600;">Сумісні моделі</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% set has_hidden_series = false %}
+                                                {% for brand, types in equipment_groups %}
+                                                    <tr>
+                                                        <td colspan="3" style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left; background-color: #EDEDED; color: #212121; font-weight: 600;">{{ brand }}</td>
+                                                    </tr>
+                                                    {% for type, series in types %}
+                                                        {% set first_series = true %}
+                                                        {% for series_name, models in series %}
+                                                            {% if first_series %}
+                                                                <tr>
+                                                                    <td style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left;">{{ type }}</td>
+                                                                    <td style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left;">{{ series_name != 'default' ? series_name : '' }}</td>
+                                                                    <td style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left;">
+                                                                        {% for model in models %}
+                                                                            {{ model }}<br>
+                                                                        {% endfor %}
+                                                                    </td>
+                                                                </tr>
+                                                                {% set first_series = false %}
+                                                            {% else %}
+                                                                <tr class="hidden-row" style="display: none;">
+                                                                    <td style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left;">{{ type }}</td>
+                                                                    <td style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left;">{{ series_name != 'default' ? series_name : '' }}</td>
+                                                                    <td style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left;">
+                                                                        {% for model in models %}
+                                                                            {{ model }}<br>
+                                                                        {% endfor %}
+                                                                    </td>
+                                                                </tr>
+                                                                {% set has_hidden_series = true %}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    {% endfor %}
+                                                {% endfor %}
+                                                {% if has_more_equipment %}
+                                                    <tr class="show-more-row">
+                                                        <td colspan="3" style="border: 1px solid #EDEDED; padding: 0.75rem;">
+                                                            <button type="button" class="load-more-equipment" 
+                                                                    style="background-color: #F8F8F8; border: 1px solid #EDEDED; color: #212121; padding: 0.75rem; width: 100%; text-align: center; cursor: pointer;" 
+                                                                    onmouseover="this.style.backgroundColor='#F1BC0F'" 
+                                                                    onmouseout="this.style.backgroundColor='#F8F8F8'" 
+                                                                    onclick="loadMoreEquipment(this)" 
+                                                                    data-product-id="{{ product_id }}"
+                                                                    data-has-more="{{ has_more_equipment ? 'true' : 'false' }}">
+                                                                Показати ще
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                {% endif %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {# Mobile version #}
+                                <div class="dark-text fsz-14 mt-3 d-md-none">
+                                    <div class="equipment-accordion">
+                                        {% set has_hidden_content = false %}
+                                        {% for brand, types in equipment_groups %}
+                                            <div class="mb-3" style="background-color: #EDEDED; padding: 0.75rem; font-weight: 600; border-radius: 4px;">{{ brand }}</div>
+                                            {% for type, series in types %}
+                                                {% set first_series = true %}
+                                                <div class="mb-3" style="border: 1px solid #EDEDED;">
+                                                    <div class="equipment-type-content" style="background: white;">
+                                                        {% for series_name, models in series %}
+                                                            {% if first_series %}
+                                                                <div class="p-3" style="border-bottom: 1px solid #EDEDED;">
+                                                                    <div class="fw-600 mb-2">{{ type }}</div>
+                                                                    {% if series_name != 'default' %}
+                                                                        <div class="fw-600 mb-2">{{ series_name }}</div>
+                                                                    {% endif %}
+                                                                    <div>{{ models|join('<br>')|raw }}</div>
+                                                                </div>
+                                                                {% set first_series = false %}
+                                                            {% else %}
+                                                                <div class="hidden-series p-3" style="display: none; border-bottom: 1px solid #EDEDED;">
+                                                                    <div class="fw-600 mb-2">{{ type }}</div>
+                                                                    {% if series_name != 'default' %}
+                                                                        <div class="fw-600 mb-2">{{ series_name }}</div>
+                                                                    {% endif %}
+                                                                    <div>{{ models|join('<br>')|raw }}</div>
+                                                                </div>
+                                                                {% set has_hidden_content = true %}
+                                                            {% endif %}
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        {% endfor %}
+                                        {% if has_hidden_content or has_more_equipment %}
+                                            <div class="p-3 show-more-container">
+                                                <button type="button" 
+                                                        class="load-more-equipment"
+                                                        style="background-color: #F8F8F8; border: 1px solid #EDEDED; color: #212121; padding: 0.75rem; width: 100%; text-align: center; cursor: pointer;" 
+                                                        onmouseover="this.style.backgroundColor='#F1BC0F'" 
+                                                        onmouseout="this.style.backgroundColor='#F8F8F8'" 
+                                                        onclick="showMoreMobileSeries(this)"
+                                                        data-product-id="{{ product_id }}"
+                                                        data-has-more="{{ has_more_equipment ? 'true' : 'false' }}">
+                                                    Показати ще
+                                                </button>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <script>
+                            function showMoreSeries(button) {
+                                const table = button.closest('tbody');
+                                const hiddenRows = table.querySelectorAll('.hidden-row');
+                                
+                                hiddenRows.forEach(row => {
+                                    row.style.display = 'table-row';
+                                });
+                                
+                                button.closest('.show-more-row').style.display = 'none';
+                            }
+
+                            function toggleAccordion(header) {
+                                const content = header.nextElementSibling;
+                                const icon = header.querySelector('.accordion-icon');
+                                
+                                if (content.style.display === 'none') {
+                                    content.style.display = 'block';
+                                    icon.style.transform = 'rotate(180deg)';
+                                } else {
+                                    content.style.display = 'none';
+                                    icon.style.transform = 'rotate(0deg)';
+                                }
+                            }
+
+                            function handleEquipmentVisibility() {
+                                // Desktop table handler
+                                const desktopTable = document.querySelector('.equipment-table-wrapper table');
+                                if (desktopTable) {
+                                    const hiddenRows = desktopTable.querySelectorAll('.hidden-row');
+                                    const showMoreRow = desktopTable.querySelector('.show-more-row');
+                                    
+                                    if (showMoreRow) {
+                                        const loadMoreButton = showMoreRow.querySelector('.load-more-equipment');
+                                        const hasMore = loadMoreButton.getAttribute('data-has-more') === 'true';
+                                        
+                                        // Показуємо кнопку тільки якщо є приховані рядки АБО є додаткові дані на сервері
+                                        if (hiddenRows.length === 0 && !hasMore) {
+                                            showMoreRow.style.display = 'none';
+                                        }
+                                    }
+                                }
+
+                                // Mobile accordion handler
+                                const mobileAccordion = document.querySelector('.equipment-accordion');
+                                if (mobileAccordion) {
+                                    const hiddenSeries = mobileAccordion.querySelectorAll('.hidden-series');
+                                    const showMoreContainer = mobileAccordion.querySelector('.show-more-container');
+                                    
+                                    if (showMoreContainer) {
+                                        const loadMoreButton = showMoreContainer.querySelector('.load-more-equipment');
+                                        const hasMore = loadMoreButton.getAttribute('data-has-more') === 'true';
+                                        
+                                        // Показуємо кнопку тільки якщо є приховані серії АБО є додаткові дані на сервері
+                                        if (hiddenSeries.length === 0 && !hasMore) {
+                                            showMoreContainer.style.display = 'none';
+                                        }
+                                    }
+                                }
+                            }
+
+                            function showMoreMobileSeries(button) {
+                                const productId = button.getAttribute('data-product-id');
+                                const hasMore = button.getAttribute('data-has-more') === 'true';
+                                const accordion = document.querySelector('.equipment-accordion');
+                                
+                                const hiddenSeries = accordion.querySelectorAll('.hidden-series');
+                                hiddenSeries.forEach(series => {
+                                    series.style.display = 'block';
+                                    series.classList.remove('hidden-series');
+                                });
+                                
+                                if (!hasMore) {
+                                    button.closest('.show-more-container').remove();
+                                    return;
+                                }
+
+                                if (hasMore) {
+                                    button.disabled = true;
+                                    button.innerHTML = 'Завантаження...';
+                                    
+                                    // Використовуємо той самий URL і заголовки, що й на десктопі
+                                    fetch(`index.php?route=product/product/equipment&product_id=${productId}`, {
+                                        headers: {
+                                            'Accept': 'application/json',
+                                            'X-Requested-With': 'XMLHttpRequest'
+                                        }
+                                    })
+                                    .then(response => {
+                                        if (!response.ok) {
+                                            throw new Error(`HTTP error! status: ${response.status}`);
+                                        }
+                                        return response.json();
+                                    })
+                                    .then(data => {
+                                        if (data.success) {
+                                            // Add new equipment groups
+                                            for (const [brand, types] of Object.entries(data.equipment_groups)) {
+                                                let brandExists = false;
+                                                
+                                                // Check if brand section already exists
+                                                accordion.querySelectorAll('.mb-3').forEach(section => {
+                                                    if (section.textContent.trim() === brand) {
+                                                        brandExists = true;
+                                                        const typeContent = section.nextElementSibling;
+                                                        
+                                                        // Add new types to existing brand
+                                                        for (const [type, series] of Object.entries(types)) {
+                                                            for (const [seriesName, models] of Object.entries(series)) {
+                                                                const newContent = document.createElement('div');
+                                                                newContent.className = 'p-3';
+                                                                newContent.style.borderBottom = '1px solid #EDEDED';
+                                                                newContent.innerHTML = `
+                                                                    <div class="fw-600 mb-2">${type}</div>
+                                                                    ${seriesName !== 'default' ? `<div class="fw-600 mb-2">${seriesName}</div>` : ''}
+                                                                    <div>${models.join('<br>')}</div>
+                                                                `;
+                                                                typeContent.querySelector('.equipment-type-content').appendChild(newContent);
+                                                            }
+                                                        }
+                                                    }
+                                                });
+                                                
+                                                // If brand doesn't exist, create new brand section
+                                                if (!brandExists) {
+                                                    const brandHtml = `
+                                                        <div class="mb-3" style="background-color: #EDEDED; padding: 0.75rem; font-weight: 600; border-radius: 4px;">${brand}</div>
+                                                    `;
+                                                    
+                                                    // Insert before the show-more-container
+                                                    const showMoreContainer = accordion.querySelector('.show-more-container');
+                                                    showMoreContainer.insertAdjacentHTML('beforebegin', brandHtml);
+                                                    
+                                                    for (const [type, series] of Object.entries(types)) {
+                                                        const typeHtml = `
+                                                            <div class="mb-3" style="border: 1px solid #EDEDED;">
+                                                                <div class="equipment-type-content" style="background: white;">
+                                                        `;
+                                                        
+                                                        let seriesHtml = '';
+                                                        for (const [seriesName, models] of Object.entries(series)) {
+                                                            seriesHtml += `
+                                                                <div class="p-3" style="border-bottom: 1px solid #EDEDED;">
+                                                                    <div class="fw-600 mb-2">${type}</div>
+                                                                    ${seriesName !== 'default' ? `<div class="fw-600 mb-2">${seriesName}</div>` : ''}
+                                                                    <div>${models.join('<br>')}</div>
+                                                                </div>
+                                                            `;
+                                                        }
+                                                        
+                                                        const closingHtml = `
+                                                                </div>
+                                                            </div>
+                                                        `;
+                                                        
+                                                        showMoreContainer.insertAdjacentHTML('beforebegin', typeHtml + seriesHtml + closingHtml);
+                                                    }
+                                                }
+                                            }
+                                            // Remove the button after loading all content
+                                            button.closest('.show-more-container').remove();
+                                        } else {
+                                            throw new Error(data.error || 'Помилка завантаження даних');
+                                        }
+                                    })
+                                    .catch(error => {
+                                        console.error('Error loading more equipment:', error);
+                                        button.disabled = false;
+                                        button.innerHTML = 'Показати ще';
+                                        alert('Помилка завантаження даних. Спробуйте ще раз.');
+                                    });
+                                }
+                            }
+
+                            function loadMoreEquipment(button) {
+                                const productId = button.getAttribute('data-product-id');
+                                const hasMore = button.getAttribute('data-has-more') === 'true';
+                                const tbody = button.closest('tbody');
+                                const hiddenRows = tbody.querySelectorAll('.hidden-row');
+                                
+                                // Show hidden rows first if they exist
+                                if (hiddenRows.length > 0) {
+                                    hiddenRows.forEach(row => {
+                                        row.style.display = 'table-row';
+                                        row.classList.remove('hidden-row');
+                                    });
+                                    button.closest('.show-more-row').remove();
+                                    return;
+                                }
+                                
+                                // If no more data to load, remove button
+                                if (!hasMore) {
+                                    button.closest('.show-more-row').remove();
+                                    return;
+                                }
+                                button.disabled = true;
+                                button.innerHTML = 'Завантаження...';
+                                
+                                // Змінюємо URL на новий метод
+                                fetch(`index.php?route=product/product/equipment&product_id=${productId}`, {
+                                    headers: {
+                                        'Accept': 'application/json',
+                                        'X-Requested-With': 'XMLHttpRequest'
+                                    }
+                                })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! status: ${response.status}`);
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    if (data.success) {
+                                        let newRows = '';
+                                        
+                                        for (const [brand, types] of Object.entries(data.equipment_groups)) {
+                                            newRows += `<tr>
+                                                <td colspan="3" style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left; background-color: #EDEDED; color: #212121; font-weight: 600;">${brand}</td>
+                                            </tr>`;
+                                            
+                                            for (const [type, series] of Object.entries(types)) {
+                                                for (const [seriesName, models] of Object.entries(series)) {
+                                                    newRows += `<tr>
+                                                        <td style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left;">${type}</td>
+                                                        <td style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left;">${seriesName !== 'default' ? seriesName : ''}</td>
+                                                        <td style="border: 1px solid #EDEDED; padding: 0.75rem; text-align: left;">${models.join('<br>')}</td>
+                                                    </tr>`;
+                                                }
+                                            }
+                                        }
+                                        
+                                        // Вставляємо нові рядки перед кнопкою
+                                        button.closest('tr').insertAdjacentHTML('beforebegin', newRows);
+                                        // Видаляємо рядок з кнопкою
+                                        button.closest('tr').remove();
+                                    } else {
+                                        throw new Error(data.error || 'Помилка завантаження даних');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error loading more equipment:', error);
+                                    button.disabled = false;
+                                    button.innerHTML = 'Показати ще';
+                                    alert('Помилка завантаження даних. Спробуйте ще раз.');
+                                });
+                            }
+                            document.addEventListener('DOMContentLoaded', handleEquipmentVisibility);
+                            </script>
                         {% endif %}
                         {% if review_status %}
                             <div class="sc-product-content-reviews pb-4 mb-md-4 pt-4 pt-md-0 px-3 px-lg-4">
@@ -777,27 +1213,12 @@
                             <div id="product_dop_tab" class="sc-product-content-info pt-4 pt-md-0 px-3 px-lg-4">
                                 <div class="sc-product-content-title d-flex align-items-center">
                                     <div class="sc-product-content-title-icon d-flex align-items-center justify-content-center br-4">
-                                        <img src="catalog/view/theme/oct_showcase/img/sprite.svg#include--product-content-info-icon" alt="" width="16" height="16">
+                                        <img src="https://nawiteh.ua/image/catalog/menu/models.svg" alt="" width="16" height="16">
                                     </div>
                                     <span class="fsz-24 fw-600 dark-text">{{ dop_tab.title }}</span>
                                 </div>
                                 <div class="sc-product-content-text dark-text fsz-14 mt-3">{{ dop_tab.text }}</div>
                             </div>
-                        {% endif %}
-                        {% if oct_product_extra_tabs %}
-                            {% set key = 0 %}
-                            {% for extra_tab in oct_product_extra_tabs %}
-                                {% set key = key + 1 %}
-                                    <div id="product_extra_tab-{{ key }}" class="sc-product-content-info pt-4 pt-md-0 px-3 px-lg-4">
-                                        <div class="sc-product-content-title d-flex align-items-center">
-                                            <div class="sc-product-content-title-icon d-flex align-items-center justify-content-center br-4">
-                                                <img src="catalog/view/theme/oct_showcase/img/sprite.svg#include--product-content-info-icon" alt="" width="16" height="16">
-                                            </div>
-                                            <span class="fsz-24 fw-600 dark-text">{{ extra_tab.title }}</span>
-                                        </div>
-                                        <div class="sc-product-content-text dark-text fsz-14 mt-3">{{ extra_tab.text }}</div>
-                                    </div>
-                            {% endfor %}
                         {% endif %}
                     </div>
                     <div class="col-lg-4 col-xl-3 sc-product-content-right p-3 px-md-0 p-lg-4 order-0 order-lg-1">
@@ -846,7 +1267,7 @@
                                 </div>
                                 {% if can_buy %}
                                     <div class="sc-module-cart d-flex align-items-stretch justify-content-between">
-                                        <div class="sc-module-quantity d-flex align-items-center justify-content-center py-1 br-12 ">
+                                        <div class="sc-module-quantity d-flex align-items-center justify-content-center py-1 br-12 {% if (is_rent == 1 or is_remont == 1) %}hidden{% endif %}">
                                             <button type="button" aria-label="Minus" class="sc-module-quantity-btn d-flex align-items-center justify-content-center sc-minus">
                                                 <span class="minus"></span>
                                             </button>
@@ -856,10 +1277,16 @@
                                             </button>
                                             <input type="hidden" name="product_id" value="{{ product_id }}">
                                         </div>
-                                        <button type="button" class="sc-btn sc-btn-primary sc-btn-with-icon br-4 sc-product-fixed-cart-btn" aria-label="To cart">
+                                        <button type="button" class="sc-btn sc-btn-primary sc-btn-with-icon br-4 sc-product-fixed-cart-btn {% if (is_rent == 1 or is_remont == 1) %}hidden{% endif %} " aria-label="To cart">
                                             <img src="catalog/view/theme/oct_showcase/img/sprite.svg#include--btn-cart-icon" alt="" width="20" height="20" class="sc-btn-icon sc-btn-icon-cart-img">
-                                            <span class="sc-btn-text">{{ button_cart }}</span>
+                                            <span class="sc-btn-text">Купити</span>
                                         </button>
+                                        {% if (is_rent == 1 or is_remont == 1) %}
+                                            <button type="button" id="button-cart-book" data-loading-text="{{ text_loading }}" class="sc-btn sc-btn-primary br-4" onclick="octPopupCallPhone();">
+                                                <img src="catalog/view/theme/oct_showcase/img/sprite.svg#include--btn-cart-icon" alt="" width="20" height="20" class="sc-btn-icon sc-btn-icon-cart-img">
+                                                <span class="sc-btn-text">Замовити</span>
+                                            </button>
+                                        {% endif %}
                                     </div>
                                 {% endif %}
                             </div>
@@ -913,9 +1340,9 @@
 			if (json['images']) {
                 $('.sc-product-images-additional, .sc-product-images-main').slick('slickRemove', null, null, true);
                 $.fancybox.destroy();
-                
+
                 const obj = JSON.parse(JSON.stringify(json['images']));
-                
+
                 Object.keys(obj).forEach(el => {
                     const popupImage = obj[el].popup,
                         thumbImage = obj[el].thumb,
@@ -924,14 +1351,14 @@
                         height = obj[el].height,
                         thumbHeight = obj[el].thumb_height,
                         thumbWidth = obj[el].thumb_width;
-                    
+
                     $('.sc-product-images-additional').slick('slickAdd',`
                         <div class="image-additional-item">
                             <a class="sc-product-images-additional-item" href="${thumbImage}" onClick="return false;" data-href="${thumbImage}">
                                 <img src="${thumbImage}" width="${thumbWidth}" height="${thumbHeight}" />
                             </a>
                         </div>`);
-                    
+
                     $('.sc-product-images-main').slick('slickAdd',`
                         <div class="sc-product-images-slide sc-product-images-slide-opt pb-3 pb-md-4">
                             <a href="${popupImage}" class="oct-gallery d-block" onClick="return false;">
@@ -939,35 +1366,35 @@
                             </a>
                         </div>`);
                 });
-                
+
                 {% if oct_showcase_data.product_zoom is defined and oct_showcase_data.product_zoom %}
                     $(".oct-gallery").zoom();
                 {% endif %}
 
                 let sliderProductsOpt = $('.sc-product-images-slide-opt:not(.slick-cloned) a');
-                
+
                 $('.sc-product-images-slide a').on('click', function(e) {
                     e.preventDefault();
-                
+
                     var totalSlides = $(this).parents('.sc-product-images-main').slick("getSlick").slideCount,
                         dataIndex = $(this).parents('.sc-product-images-slide').data('slick-index'),
                         trueIndex;
-                
+
                     switch(true) {
                         case (dataIndex < 0):
                             trueIndex = totalSlides+dataIndex;
-                
+
                             break;
                         case (dataIndex >= totalSlides):
                             trueIndex = dataIndex%totalSlides;
-                
+
                             break;
                         default:
                             trueIndex = dataIndex;
                     }
-                
+
                     $.fancybox.open(sliderProductsOpt, {backFocus: false, hideScrollbar: false}, trueIndex);
-                
+
                     return false;
                 });
 			}
@@ -1037,7 +1464,7 @@
                             errorOption += '<div class="alert-text-item">' + json['error']['option'][i] + '</div>';
                         }
                         scNotify('danger', errorOption);
-                        
+
                         scrollToElement('.sc-product-actions-middle', false, -110);
                         return;
                     }
@@ -1245,7 +1672,7 @@
     });
 
     {% if oct_showcase_data.product_zoom is defined and oct_showcase_data.product_zoom %}
-    $(document).ready(function() {
+    $( document ).ready(function() {
         $(".oct-gallery").zoom();
     });
     {% endif %}
