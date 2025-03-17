@@ -149,125 +149,222 @@
                     {% if thumb or images %}
                         {% if thumb %}
                             <div class="sc-product-images-main px-3">
-                                <div class="sc-product-images-slide pb-3 pb-md-4">
-                                    <a href="{{ popup }}" class="oct-gallery d-block" onclick="return false;">
-                                        <img src="{{ thumb }}" class="d-block mx-auto" alt="{{ heading_title }}" title="{{ heading_title }}" width="{{ thumb_width }}" height="{{ thumb_height }}" />
-                                    </a>
-                                </div>
-                                {% for key, image in images %}
-                                    {% set i = key + 1 %}
-                                    {% if loop.index0 > 0 %}
-                                        <div class="sc-product-images-slide pb-3 pb-md-4">
-                                            <a href="{{ image.popup_fancy }}" class="oct-gallery d-block" onclick="return false;">
-                                                <img src="{{ image.popup }}" class="d-block mx-auto" alt="{{ heading_title }}" title="{{ heading_title }}" width="{{ thumb_width }}" height="{{ thumb_height }}" />
-                                            </a>
+                                <div class="swiper sc-product-images-main-swiper">
+                                    <div class="swiper-wrapper">
+                                        <div class="sc-product-images-slide swiper-slide pb-3 pb-md-4">
+                                            <span data-fancybox="gallery" data-src="{{ popup }}" class="oct-gallery d-block">
+                                                <img src="{{ thumb }}" class="d-block mx-auto" alt="{{ heading_title }}" title="{{ heading_title }}" width="{{ thumb_width }}" height="{{ thumb_height }}" />
+                                            </span>
                                         </div>
-                                    {% endif %}
-                                {% endfor %}
+                                        {% for key, image in images %}
+                                            {% set i = key + 1 %}
+                                            {% if loop.index0 > 0 %}
+                                                <div class="sc-product-images-slide swiper-slide pb-3 pb-md-4">
+                                                    <span data-fancybox="gallery" data-src="{{ image.popup_fancy }}" class="oct-gallery d-block">
+                                                        <img src="{{ image.popup }}" class="d-block mx-auto" alt="{{ heading_title }}" title="{{ heading_title }}" width="{{ thumb_width }}" height="{{ thumb_height }}" />
+                                                    </span>
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    <div class="swiper-pagination"></div>
+                                </div>
                             </div>
                         {% endif %}
                         {% if images %}
                             <div class="sc-product-images-additional mt-xxl-3 d-none d-md-flex align-items-stretch">
-                                {% for key, image in images %}
-                                    {% set i = key + 1 %}
-                                    <a class="sc-product-images-additional-item" href="{{ image.popup }}" onClick="return false;" data-href="{{ image.popup }}">
-                                        <img src="{{ image.thumb }}" title="{{ heading_title }}" alt="{{ heading_title }}" width="{{ image.images_width }}" height="{{ image.images_height }}" />
-                                    </a>
-                                {% endfor %}
+                                <div class="swiper sc-product-images-additional-swiper">
+                                    <button type="button" class="swiper-slider-btn swiper-slider-btn-prev sc-btn sc-btn-outline sc-btn-outline-secondary sc-btn-with-icon br-4 overflow-hidden" aria-label="Previous slide">
+                                        <span class="sc-btn-icon sc-btn-icon-chevron"></span>
+                                    </button>
+                                    <div class="swiper-wrapper">
+                                        {% for key, image in images %}
+                                            {% set i = key + 1 %}
+                                            <span class="sc-product-images-additional-item swiper-slide br-4" data-href="{{ image.popup }}">
+                                                <img src="{{ image.thumb }}" title="{{ heading_title }}" alt="{{ heading_title }}" width="{{ image.images_width }}" height="{{ image.images_height }}" />
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                    <button type="button" class="swiper-slider-btn swiper-slider-btn-next sc-btn sc-btn-outline sc-btn-outline-secondary sc-btn-with-icon br-4 overflow-hidden" aria-label="Next slide">
+                                        <span class="sc-btn-icon sc-btn-icon-chevron"></span>
+                                    </button>
+                                </div>
                             </div>
                         {% endif %}
                         <script>
                             $(function() {
                                 setTimeout(function() {
-                                    $('#image-additional').slick('refresh');
                                     $('.image-additional-box').addClass('overflow-visible');
                                 }, 500);
 
-                                var sliderProducts = $('.sc-product-images-main a');
+                                var sliderProducts = $('.sc-product-images-main .oct-gallery');
 
                                 sliderProducts.on('click', function(e) {
                                     e.preventDefault();
 
-                                    var totalSlides = $(this).parents('.sc-product-images-main').slick("getSlick").slideCount,
-                                    dataIndex = $(this).parents('.sc-product-images-slide').data('slick-index'),
-                                    trueIndex;
+                                    var totalSlides = $(this).parents('.sc-product-images-main').find('.sc-product-images-slide').length,
+                                    dataIndex = $(this).parents('.sc-product-images-slide').data('swiper-slide-index');
 
-                                    switch(true) {
-                                        case (dataIndex < 0):
-                                            trueIndex = totalSlides+dataIndex;
-
-                                            break;
-                                        case (dataIndex >= totalSlides):
-                                            trueIndex = dataIndex%totalSlides;
-
-                                            break;
-                                        default:
-                                            trueIndex = dataIndex;
-                                    }
-
-                                    $.fancybox.open(sliderProducts, {backFocus: false, hideScrollbar: false, loop : true}, trueIndex);
+                                    $.fancybox.open(sliderProducts, {backFocus: false, hideScrollbar: false, loop : true}, dataIndex);
 
                                     return false;
                                 });
 
+                                 var additionalImagesCount = $('.sc-product-images-additional-swiper .swiper-slide').length,
+                                    additionalImagesBtns = document.querySelectorAll('.sc-product-images-additional-swiper .swiper-slider-btn');
+
+                                if (additionalImagesCount < 6) {
+                                    additionalImagesBtns.forEach(btn => {
+                                        btn.style.display = 'none';
+                                    });
+                                } else {
+                                    additionalImagesBtns.forEach(btn => {
+                                        btn.style.display = 'grid';
+                                    });
+                                }
+
+                                $(document).on('click', '.sc-product-images-additional-swiper .swiper-slider-btn-next', function(){
+                                    mainImagesSwiper.slideNext();
+                                });
+
+                                $(document).on('click', '.sc-product-images-additional-swiper .swiper-slider-btn-prev', function(){
+                                    mainImagesSwiper.slidePrev();
+                                });
+
                                 {% if images %}
-                                $('.sc-product-images-main').slick({
-                                    infinite: true,
-                                    slidesToShow: 1,
-                                    slidesToScroll: 1,
-                                    fade: false,
-                                    draggable: false,
-                                    asNavFor: '.sc-product-images-additional',
-                                    dots: false,
-                                    arrows: false,
-                                    responsive: [
-                                        {
-                                            breakpoint: 768,
-                                            settings: {
-                                                dots: {% if images|length <= 1 %}false{% else %}true{% endif %}
+                                    var additionalImagesSwiper = new Swiper(".sc-product-images-additional-swiper", {
+                                        loop: true,
+                                        slidesPerView: 6,
+                                        slideToClickedSlide: true,
+                                        spaceBetween: 8,
+                                        grabCursor: true,
+                                        speed: 500,
+                                        breakpoints: {
+                                            768: {
+                                                navigation: {
+                                                    nextEl: '.swiper-slider-btn-next',
+                                                    prevEl: '.swiper-slider-btn-prev',
+                                                    enabled: true
+                                                }
                                             }
                                         }
-                                    ]
-                                });
-                                $('.sc-product-images-additional').slick({
-                                    infinite: {% if images|length > 3 %}true{% else %}false{% endif %},
-                                    slidesToShow: 6,
-                                    slidesToScroll: 1,
-                                    focusOnSelect: true,
-                                    asNavFor: '.sc-product-images-main',
-                                    dots: false,
-                                    prevArrow: '<button type="button" class="slick-slider-btn slick-slider-btn-prev sc-btn sc-btn-outline sc-btn-outline-secondary sc-btn-with-icon br-4 overflow-hidden"><span class="sc-btn-icon" aria-label="Previous"></span></button>',
-                                    nextArrow: '<button type="button" class="slick-slider-btn slick-slider-btn-next sc-btn sc-btn-outline sc-btn-outline-secondary sc-btn-with-icon br-4 overflow-hidden"><span class="sc-btn-icon" aria-label="Next"></span></button>',
-                                    responsive: [
-                                        {
-                                            breakpoint: 1600,
-                                            settings: {
-                                                slidesToShow: 6,
-                                                slidesToScroll: 1
-                                            }
-                                        }, {
-                                            breakpoint: 1200,
-                                            settings: {
-                                                slidesToShow: 6,
-                                                slidesToScroll: 1
-                                            }
-                                        }, {
-                                            breakpoint: 992,
-                                            settings: {
-                                                slidesToShow: 6,
-                                                slidesToScroll: 1
-                                            }
-                                        }, {
-                                            breakpoint: 376,
-                                            settings: {
-                                                slidesToShow: 6,
-                                                slidesToScroll: 1
+                                    });
+
+                                    var mainImagesSwiper = new Swiper('.sc-product-images-main-swiper', {
+                                        loop: true,
+                                        spaceBetween: 0,
+                                        slidesPerView: 1,
+                                        slideToClickedSlide: true,
+                                        grabCursor: true,
+                                        speed: 500,
+                                        pagination: {
+                                            el: '.swiper-pagination',
+                                            clickable: true,
+                                        },
+                                        navigation: {
+                                            enabled: false
+                                        },
+                                        thumbs: {
+                                            swiper: additionalImagesSwiper,
+                                        },
+                                        breakpoints: {
+                                            768: {
+                                                pagination: {
+                                                    enabled: false
+                                                }
                                             }
                                         }
-                                    ]
-                                });
+                                    });
                                 {% else %}
-                                    $('.sc-product-images-main').slick({});
+                                    var mainImagesSwiper = new Swiper('.sc-product-images-main-swiper', {
+                                        spaceBetween: 0,
+                                        slidesPerView: 1,
+                                        pagination: {
+                                            enabled: false
+                                        },
+                                        navigation: {
+                                            enabled: false
+                                        }
+                                    });
+                                {% endif %}
+
+                                {% if oct_product_main_image_option_status is defined and oct_product_main_image_option_status %}
+                                    $(document).on('change', '#sc-product-options .radio', function() {
+                                        $.ajax({
+                                        url: 'index.php?route=product/product/getPImages&product_id={{ product_id }}',
+                                        type: 'post',
+                                        data: $('#sc-product-options input[type=\'radio\']:checked'),
+                                        dataType: 'json',
+                                        success: function(json) {
+                                            if (json['images']) {
+                                                mainImagesSwiper.removeAllSlides();
+                                                additionalImagesSwiper.removeAllSlides();
+                                                $.fancybox.destroy();
+                                                
+                                                const obj = JSON.parse(JSON.stringify(json['images']));
+                                                
+                                                Object.keys(obj).forEach(el => {
+                                                    const popupImage = obj[el].popup,
+                                                        thumbImage = obj[el].thumb,
+                                                        sliderImage = obj[el].thumb_slider,
+                                                        width = obj[el].width,
+                                                        height = obj[el].height,
+                                                        thumbHeight = obj[el].thumb_height,
+                                                        thumbWidth = obj[el].thumb_width;
+                                                    
+                                                    additionalImagesSwiper.appendSlide(`
+                                                        <span class="sc-product-images-additional-item swiper-slide br-4" data-href="${thumbImage}">
+                                                            <img src="${thumbImage}" width="${thumbWidth}" height="${thumbHeight}" />
+                                                        </span>
+                                                    `);
+                                                    
+                                                    mainImagesSwiper.appendSlide(`
+                                                        <div class="sc-product-images-slide swiper-slide pb-3 pb-md-4 sc-product-images-slide-opt">
+                                                            <span data-fancybox="gallery" data-src="${popupImage}" class="oct-gallery d-block">
+                                                                <img src="${sliderImage}" width="${width}" height="${height}" class="d-block mx-auto" />
+                                                            </span>
+                                                        </div>
+                                                    `);
+                                                });
+
+                                                mainImagesSwiper.update();
+                                                additionalImagesSwiper.update();
+
+                                                var additionalImagesCount = $('.sc-product-images-additional-swiper .swiper-slide').length,
+                                                    additionalImagesBtns = document.querySelectorAll('.sc-product-images-additional-swiper .swiper-slider-btn');
+
+                                                if (additionalImagesCount < 6) {
+                                                    additionalImagesBtns.forEach(btn => {
+                                                        btn.style.display = 'none';
+                                                    });
+                                                } else {
+                                                    additionalImagesBtns.forEach(btn => {
+                                                        btn.style.display = 'grid';
+                                                    });
+                                                }
+                                                
+                                                {% if oct_showcase_data.product_zoom is defined and oct_showcase_data.product_zoom %}
+                                                    $(".oct-gallery").zoom();
+                                                {% endif %}
+                                                
+                                                $(document).on('click', '.sc-product-images-slide .oct-gallery', function(e) {
+                                                    e.preventDefault();
+                                                    $.fancybox.destroy();
+
+                                                    const $slide = $(this).closest('.sc-product-images-slide-opt');
+                                                    const $allSlides = $('.sc-product-images-slide-opt:not(.swiper-slide-duplicate)');
+                                                    const slideIndex = $(this).parents('.sc-product-images-slide-opt').data('swiper-slide-index');
+
+                                                    $.fancybox.open(
+                                                        $allSlides.find('.oct-gallery'),
+                                                        { backFocus: false, hideScrollbar: false, loop: true },
+                                                        slideIndex
+                                                    );
+                                                });
+                                            }
+                                        }
+                                        });
+                                    });
                                 {% endif %}
                             });
                         </script>
@@ -275,21 +372,51 @@
                 </div>
             </div>
             <div id="product" class="col-lg-6 mt-3">
-                <div class="sc-product-info d-flex flex-column flex-md-row flex-lg-column flex-xl-row align-items-start align-items-md-center align-items-lg-start align-items-xl-center justify-content-between fsz-12 light-text">
-                    <div class="sc-product-info-left d-flex align-items-center w-100 w-md-auto justify-content-between justify-content-md-start">
+                <div class="sc-product-info d-flex flex-column flex-md-row flex-lg-column flex-xl-row align-items-start justify-content-between fsz-12 light-text">
+                    <div class="sc-product-info-left d-flex align-items-center w-100 w-md-auto justify-content-between justify-content-md-start flex-wrap gap-3">
                         {% if oct_showcase_data.product_model is defined and oct_showcase_data.product_model == 'on' %}
                             <div class="sc-product-info-item p-1 br-4">
                                 <span class="dark-text">{{ text_model }}</span> {{ model }}
                             </div>
                         {% endif %}
+                        {% if oct_product_sku_show and sku %}
+                            <div class="sc-product-info-item p-1 br-4">
+                                <span class="dark-text">{{ text_sku }}</span> {{ sku }}
+                            </div>
+                        {% endif %}
+                        {% if oct_product_upc_show and upc %}
+                            <div class="sc-product-info-item p-1 br-4">
+                                <span class="dark-text">{{ text_upc }}</span> {{ upc }}
+                            </div>
+                        {% endif %}
+                        {% if oct_product_ean_show and ean %}
+                            <div class="sc-product-info-item p-1 br-4">
+                                <span class="dark-text">{{ text_ean }}</span> {{ ean }}
+                            </div>
+                        {% endif %}
+                        {% if oct_product_jan_show and jan %}
+                            <div class="sc-product-info-item p-1 br-4">
+                                <span class="dark-text">{{ text_jan }}</span> {{ jan }}
+                            </div>
+                        {% endif %}
+                        {% if oct_product_isbn_show and isbn %}
+                            <div class="sc-product-info-item p-1 br-4">
+                                <span class="dark-text">{{ text_isbn }}</span> {{ isbn }}
+                            </div>
+                        {% endif %}
+                        {% if oct_product_mpn_show and mpn %}
+                            <div class="sc-product-info-item p-1 br-4">
+                                <span class="dark-text">{{ text_mpn }}</span> {{ mpn }}
+                            </div>
+                        {% endif %}
                         {% if manufacturer %}
-                            <div class="sc-product-info-item p-1 br-4{% if oct_showcase_data.product_model is defined and oct_showcase_data.product_model == 'on' %} ms-3{% endif %}">
+                            <div class="sc-product-info-item p-1 br-4">
                                 <span class="dark-text">{{ text_manufacturer }}</span> <a href="{{ manufacturers }}" class="blue-link">{{ manufacturer }}</a>
                             </div>
                         {% endif %}
                     </div>
                     {% if review_status %}
-                    <div class="sc-product-info-right mt-3 mt-md-0 mt-lg-3 mt-xl-0">
+                    <div class="sc-product-info-right mt-3 mt-md-0 mt-lg-3 mt-xl-0 ps-xl-3">
                         <div class="sc-product-info-item p-1 br-4 d-flex align-items-center">
                             <span class="blue-link" id="reviewTabTrigger">{{ oct_product_reviews }}</span>
                             <script>
@@ -446,7 +573,7 @@
                                                     {% if option.required %}
                                                         <span class="required option-required"> *</span>{% endif %}
                                                 </label>
-                                                <div id="input-option{{ option.product_option_id }}" class="options-box d-flex mt-3 mt-sm-0">
+                                                <div id="input-option{{ option.product_option_id }}" class="options-box d-flex mt-3 mt-md-0">
                                                     {% for option_value in option.product_option_value %}
                                                         <div class="radio">
                                                             <label
@@ -850,11 +977,12 @@
                                             <button type="button" aria-label="Minus" class="sc-module-quantity-btn d-flex align-items-center justify-content-center sc-minus">
                                                 <span class="minus"></span>
                                             </button>
-                                            <input type="text" class="form-control" name="quantity" value="1" aria-label="Quantity" inputmode="numeric">
+                                            <input type="text" class="form-control" name="quantity" value="{{ minimum }}" aria-label="Quantity" inputmode="numeric">
                                             <button type="button" aria-label="Plus" class="sc-module-quantity-btn d-flex align-items-center justify-content-center sc-plus">
                                                 <span class="plus"></span>
                                             </button>
-                                            <input type="hidden" name="product_id" value="{{ product_id }}">
+                                            <input id="oct-product-id" type="hidden" name="product_id" value="{{ product_id }}">
+                                            <input type="hidden" class="min-qty" value="{{ minimum }}" name="min_quantity">
                                         </div>
                                         <button type="button" class="sc-btn sc-btn-primary sc-btn-with-icon br-4 sc-product-fixed-cart-btn" aria-label="To cart">
                                             <img src="catalog/view/theme/oct_showcase/img/sprite.svg#include--btn-cart-icon" alt="" width="20" height="20" class="sc-btn-icon sc-btn-icon-cart-img">
@@ -899,83 +1027,6 @@
     {% endif %}
     {{ content_bottom }}
 </div>
-{% if oct_product_main_image_option_status is defined and oct_product_main_image_option_status %}
-	<script>
-	$(document).on('change', '#sc-product-options .radio', function() {
-
-		$.ajax({
-		url: 'index.php?route=product/product/getPImages&product_id={{ product_id }}',
-		type: 'post',
-		data: $('#sc-product-options input[type=\'radio\']:checked'),
-		dataType: 'json',
-		success: function(json) {
-
-			if (json['images']) {
-                $('.sc-product-images-additional, .sc-product-images-main').slick('slickRemove', null, null, true);
-                $.fancybox.destroy();
-                
-                const obj = JSON.parse(JSON.stringify(json['images']));
-                
-                Object.keys(obj).forEach(el => {
-                    const popupImage = obj[el].popup,
-                        thumbImage = obj[el].thumb,
-                        sliderImage = obj[el].thumb_slider,
-                        width = obj[el].width,
-                        height = obj[el].height,
-                        thumbHeight = obj[el].thumb_height,
-                        thumbWidth = obj[el].thumb_width;
-                    
-                    $('.sc-product-images-additional').slick('slickAdd',`
-                        <div class="image-additional-item">
-                            <a class="sc-product-images-additional-item" href="${thumbImage}" onClick="return false;" data-href="${thumbImage}">
-                                <img src="${thumbImage}" width="${thumbWidth}" height="${thumbHeight}" />
-                            </a>
-                        </div>`);
-                    
-                    $('.sc-product-images-main').slick('slickAdd',`
-                        <div class="sc-product-images-slide sc-product-images-slide-opt pb-3 pb-md-4">
-                            <a href="${popupImage}" class="oct-gallery d-block" onClick="return false;">
-                                <img src="${sliderImage}" width="${width}" height="${height}" class="d-block mx-auto" />
-                            </a>
-                        </div>`);
-                });
-                
-                {% if oct_showcase_data.product_zoom is defined and oct_showcase_data.product_zoom %}
-                    $(".oct-gallery").zoom();
-                {% endif %}
-
-                let sliderProductsOpt = $('.sc-product-images-slide-opt:not(.slick-cloned) a');
-                
-                $('.sc-product-images-slide a').on('click', function(e) {
-                    e.preventDefault();
-                
-                    var totalSlides = $(this).parents('.sc-product-images-main').slick("getSlick").slideCount,
-                        dataIndex = $(this).parents('.sc-product-images-slide').data('slick-index'),
-                        trueIndex;
-                
-                    switch(true) {
-                        case (dataIndex < 0):
-                            trueIndex = totalSlides+dataIndex;
-                
-                            break;
-                        case (dataIndex >= totalSlides):
-                            trueIndex = dataIndex%totalSlides;
-                
-                            break;
-                        default:
-                            trueIndex = dataIndex;
-                    }
-                
-                    $.fancybox.open(sliderProductsOpt, {backFocus: false, hideScrollbar: false}, trueIndex);
-                
-                    return false;
-                });
-			}
-		}
-		});
-	});
-	</script>
-{% endif %}
 <script>
     $('select[name=\'recurring_id\'], input[name="quantity"]').change(function() {
         $.ajax({
@@ -1154,12 +1205,14 @@
             data: $('#popup_review_form').serialize(),
             beforeSend: function() {
                 $('#button-review').button('loading');
+                masked('body', true);
             },
             complete: function() {
                 $('#button-review').button('reset');
             },
             success: function(json) {
                 $('.alert-dismissible').remove();
+                masked('body', false);
 
                 if (json['error']) {
                     let errorOption = '';
