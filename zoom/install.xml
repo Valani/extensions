@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<modification>
+    <name>Product Image Zoom</name>
+    <code>oc_product_zoom</code>
+    <version>1.0.0</version>
+    <author>OpenCart Extension Developer</author>
+    <link>https://www.opencart.com</link>
+    <file path="admin/controller/marketplace/install.php">
+        <operation>
+            <search><![CDATA[public function install() {]]></search>
+            <add position="after"><![CDATA[
+                // Add permission for oc_product_zoom
+                if ($this->user->hasPermission('modify', 'extension/module/oc_product_zoom')) {
+                    // Extension is already installed
+                }
+            ]]></add>
+        </operation>
+    </file>
+</modification>
